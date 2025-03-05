@@ -1,0 +1,14 @@
+{
+  "name": "udacity-sim-racer:W",
+  "version": "1.0.0",
+  "description": "simracer project",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["sample", "project"],
+  "author": "Mohammed",
+  "license": "ISC"
+}
+
+
