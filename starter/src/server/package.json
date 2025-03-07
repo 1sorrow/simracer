@@ -6,9 +6,16 @@
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": ["sample", "project"],
+  "keywords": [
+    "sample",
+    "project"
+  ],
   "author": "Mohammed",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.2",
+    "node-fetch": "^3.3.2"
+  }
 }
 
 
