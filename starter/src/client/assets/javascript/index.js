@@ -199,12 +199,39 @@ function handleSelectTrack(target) {
 	target.classList.add('selected')	
 }
 
-function handleAccelerate() {
-  console.log("accelerate button clicked");
-  accelerate(store.race_id)
-    .then(() => console.log("Acceleration successful"))
-    .catch(error => console.error("Acceleration error:", error));
+let isAccelerating = false;
+
+async function handleAccelerate() {
+    console.log("Accelerate button clicked.");
+
+    if (!store.race_id) {
+        console.error("Race ID not found, can't accelerate.");
+        return;
+    }
+
+    try {
+        const race = await getRace(store.race_id);
+        if (race.status === "finished") {
+            console.error("The race is already finished. Cannot accelerate.");
+            renderAt('#race', resultsView(race.positions)); // Pass the positions to resultsView
+            return;
+        }
+    } catch (error) {
+        console.error("Error fetching race status:", error);
+        return;
+    }
+
+    // Proceed with acceleration if the race is in progress
+    accelerate(store.race_id)
+        .then(() => {
+            console.log("Acceleration request sent successfully");
+        })
+        .catch(error => {
+            console.error("Error while accelerating:", error);
+        });
 }
+
+
 // HTML VIEWS ------------------------------------------------
 // Provided code - do not remove
 
@@ -281,31 +308,35 @@ function renderRaceStartView(track) {
 }
 
 function resultsView(positions) {
-	userPlayer.driver_name += " (you)"
-	let count = 1
-  
-	const results = positions.map(p => {
-		return `
-			<tr>
-				<td>
-					<h3>${count++} - ${p.driver_name}</h3>
-				</td>
-			</tr>
-		`
-	})
+    const userPlayer = positions.find(e => e.id === parseInt(store.player_id)); // Ensure userPlayer is defined
+    if (userPlayer) {
+        userPlayer.driver_name += " (you)";
+    }
+    let count = 1;
 
-	return `
-		<header>
-			<h1>Race Results</h1>
-		</header>
-		<main>
-			<h3>Race Results</h3>
-			<p>The race is done! Here are the final results:</p>
-			${results.join('')}
-			<a href="/race">Start a new race</a>
-		</main>
-	`
+    const results = positions.map(p => {
+        return `
+            <tr>
+                <td>
+                    <h3>${count++} - ${p.driver_name}</h3>
+                </td>
+            </tr>
+        `;
+    });
+
+    return `
+        <header>
+            <h1>Race Results</h1>
+        </header>
+        <main>
+            <h3>Race Results</h3>
+            <p>The race is done! Here are the final results:</p>
+            ${results.join('')}
+            <a href="/race">Start a new race</a>
+        </main>
+    `;
 }
+
 
 function raceProgress(positions) {
 	let userPlayer = positions.find(e => e.id === parseInt(store.player_id))
@@ -404,29 +435,39 @@ function getRace(id) {
 	.catch(err => console.log("Problem with getRace request:", err))
 }
 
-function startRace(id) {
-	return fetch(`${SERVER}/api/races/${id}/start`, {
-		method: 'POST',
-		...defaultFetchOpts(),
-	})
-	.then(res => res.json())
-	.catch(err => console.log("Problem with startRace request:", err))
+async function startRace(raceId) {
+    try {
+        console.log(`🏁 Starting race ${raceId}...`);
+
+        const response = await fetch(`http://localhost:3001/api/races/${raceId}/start`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+        // Read response as text to prevent JSON parsing errors
+        const text = await response.text();
+        const data = text ? JSON.parse(text) : {}; // Parse JSON only if not empty
+
+        console.log("✅ Race started:", data);
+    } catch (error) {
+        console.error("❌ StartRace error:", error);
+    }
 }
 
-function accelerate(id) {
-  return fetch(`${SERVER}/api/races/${id}/accelerate`, {
-    method: 'POST',
-    ...defaultFetchOpts(),
-  })
-  .then(res => {
-    // Handle empty responses
-    if (res.status === 204 || res.headers.get('Content-Length') === '0') {
-      return { success: true }; // Return a mock response
+
+async function accelerate(id) {
+    const response = await fetch(`${SERVER}/api/races/${id}/accelerate`, {
+        method: 'POST',
+        ...defaultFetchOpts(),
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
     }
-    return res.json();
-  })
-  .catch(err => {
-    console.error("Accelerate failed:", err);
-    throw err;
-  });
+
+    // Check if the response body is empty
+    const text = await response.text();
+    return text ? JSON.parse(text) : {}; // Parse JSON only if not empty
 }
