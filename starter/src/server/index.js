@@ -68,7 +68,5 @@ app.post('/api/races/:raceId/start', async (req, res) => {
     }
 });
 
-res.setHeader('Access-Control-Allow-Origin', '*');
-
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
